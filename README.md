@@ -9,12 +9,9 @@
 
 ---
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+<p align="center">
   <img alt="Screenshot of the staff-notation window with notes" src="docs/screenshot.png">
-</picture>
-
-<sub>↑ Add a screenshot to `docs/screenshot.png` (optional) — run the tool, take a screenshot of the staff window, drop it in.</sub>
+</p>
 
 ## What it does
 
