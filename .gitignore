@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtualenv
+.venv/
+venv/
+
+# Build outputs
+dist/
+build/libs/
+build/soundfonts/
+build/keyboard-music/
+build/keyboard-music.spec.tmp
+*.pyc
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Claude Code session files (local-only)
+.claude/
+
+# Local test artifacts
+.pytest_cache/
+*.egg
