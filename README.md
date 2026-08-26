@@ -1,18 +1,58 @@
 # keyboard-music
 
-Play piano notes while you type. Cross-platform (macOS + Windows), Python background process that hooks the keyboard, maps each key to a piano note, and plays it through a realistic piano SoundFont.
+**Play piano notes while you type.** A small cross-platform background tool that listens to keyboard input and plays notes through FluidSynth + a SoundFont piano. Default config: chromatic scale, sustain pedal always on, central C register.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](#installation)
+[![Tests](https://img.shields.io/badge/tests-79%20passing-brightgreen.svg)](tests/)
+
+---
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+  <img alt="Screenshot of the staff-notation window with notes" src="docs/screenshot.png">
+</picture>
+
+<sub>↑ Add a screenshot to `docs/screenshot.png` (optional) — run the tool, take a screenshot of the staff window, drop it in.</sub>
+
+## What it does
+
+Every key you press becomes a piano note. The defaults are tuned for a "background piano" experience: chromatic mapping (q w e r t y u = do re mi fa sol la si), sustain always on so released notes keep ringing, and a concert-hall reverb so the sound feels like a real instrument. The 1.2 GB SoundFont (Salamander Grand Piano V3) downloads automatically on first run.
+
+## Quick start
+
+### Pre-built macOS executable
+
+```bash
+# Download keyboard-music.app.zip from the Releases page, unzip, double-click.
+# On first run it will ask for Accessibility permission (one-time).
+```
+
+### From source
+
+```bash
+git clone https://github.com/laitingyou/keyboard-music.git
+cd keyboard-music
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
+brew install fluid-synth        # macOS only; apt install on Linux
+python main.py
+```
+
+Press some letters. You should hear piano. A Tk window shows the notes on a treble staff as you play.
 
 ## Features
 
 - **All keys map to notes** — every printable key, plus Space, Enter, Backspace, Tab, Esc, F1–F12.
 - **Position-based mapping** — lower-left keys are lower-pitched, upper-right keys are higher-pitched.
-- **Two musical modes**: `pentatonic` (default — any random typing sounds consonant) and `chromatic` (every key has a unique pitch for full piano feel).
-- **Shift = sustain pedal** — hold Shift while playing, and released notes keep ringing until you release Shift.
-- **Live staff-notation window** — a small window shows each note on a treble staff as you play (with ledger lines for notes outside the staff; auto-pages after ~24 notes). Tk-based, no extra dependencies. Disable with `--no-visualizer`.
-- **Realistic piano sound** via the [Salamander Grand Piano V3](https://freepats.zenvoid.org/Piano/SalamanderGrandPiano/) SoundFont (CC-BY-3.0, auto-downloaded as a .tar.xz archive on first run).
-- **Panic hotkey** (`Ctrl + Alt + P`) for instant silence if anything gets weird.
-
-> **Note on the bundled SoundFont**: the canonical Salamander Grand Piano V3 SF2 is ~1.3 GB extracted. The first run downloads and extracts the ~310 MB compressed archive — takes a minute or so. If that's too big, pass `--soundfont PATH` to point at any other SF2 you have (5–30 MB free piano soundfonts are widely available).
+- **Chromatic by default** — every key has a unique pitch. `--mapping pentatonic` for random-text-friendly mode (no F or B).
+- **Sustain always on** by default — released notes keep ringing. Use `Ctrl + Alt + P` to panic-silence.
+- **Live staff-notation window** — a small Tk window draws each note on a treble staff in real time. Disable with `--no-visualizer`.
+- **Octave shift** — `Up` / `Down` arrows transpose the keyboard by an octave at a time, with the new offset logged on stderr.
+- **Auto sample-rate matching** — the tool queries your CoreAudio device's actual rate on startup, so it works whether your speakers run at 44.1 kHz or 48 kHz.
+- **Realistic piano sound** via the [Salamander Grand Piano V3](https://freepats.zenvoid.org/Piano/SalamanderGrandPiano/) SoundFont (CC-BY-3.0, auto-downloaded as a 310 MB archive on first run, expands to 1.2 GB).
+- **macOS executable bundle** — `BUNDLE_SOUNDFONT=1 build/build.sh` produces a self-contained 1.2 GB bundle you can copy to any Mac. See [build/README.md](build/README.md).
 
 ## Installation
 
@@ -22,10 +62,7 @@ Play piano notes while you type. Cross-platform (macOS + Windows), Python backgr
 bash scripts/install_macos.sh
 ```
 
-Requires [Homebrew](https://brew.sh) and Python 3.10+. The script:
-
-1. Installs `fluid-synth` via Homebrew.
-2. Installs the Python package in editable mode.
+The script installs `fluid-synth` via Homebrew and the Python package in editable mode.
 
 ### Windows
 
@@ -33,7 +70,7 @@ Requires [Homebrew](https://brew.sh) and Python 3.10+. The script:
 powershell -ExecutionPolicy Bypass -File scripts\install_windows.ps1
 ```
 
-Requires Python 3.10+. The script will use Chocolatey if available, otherwise guide you through a manual install of FluidSynth from the [releases page](https://github.com/FluidSynth/fluidsynth/releases/latest).
+Uses Chocolatey if available; otherwise walks you through a manual FluidSynth install.
 
 ### Linux
 
@@ -48,28 +85,26 @@ pip install -e .
 keyboard-music
 ```
 
-On first launch the tool downloads the SoundFont (~5 MB) to `~/.keyboard-music/piano.sf2`.
-
 ### macOS Accessibility permission
 
-macOS requires you to grant Accessibility permission for the keyboard hook to work. The tool will print instructions on the first run. Easiest workflow:
+macOS requires you to grant Accessibility permission to your terminal app before pynput can monitor keystrokes. The tool prints instructions on the first run. Easiest workflow:
 
 ```bash
 keyboard-music --wait-permission
 ```
 
-This polls for the grant and auto-resumes once you toggle Accessibility on in **System Settings → Privacy & Security → Accessibility**.
+This polls for the grant and resumes once you toggle Accessibility on in **System Settings → Privacy & Security → Accessibility**.
 
 ### CLI flags
 
 ```
---mapping {pentatonic,pentatonic_minor,chromatic}   default: pentatonic
+--mapping {pentatonic,pentatonic_minor,chromatic}   default: chromatic
 --soundfont PATH                                    skip auto-download; use this SF2
 --sustain-key {left,right,either}                   default: either
---base-midi INT                                     default: 48 (C3). Range [0, 80]
+--base-midi INT                                     default: 60 (middle C). Range [0, 80]
 --redownload                                        re-download the SoundFont
---no-sustain                                        disable Shift-as-sustain
---sustain-on-start                                  start with sustain pedal engaged (Shift becomes a no-op; use Ctrl+Alt+P panic to silence)
+--no-sustain                                        disable sustain entirely (Shift becomes a normal modifier)
+--no-sustain-on-start                               start with sustain pedal up (Shift acts as momentary pedal)
 --no-effects                                        disable built-in reverb + chorus (dry sound)
 --velocity-dynamic                                  attack-based velocity (fast taps loud, long holds gentle)
 --no-visualizer                                     no staff-notation window (headless)
@@ -81,50 +116,32 @@ This polls for the grant and auto-resumes once you toggle Accessibility on in **
 ### Examples
 
 ```bash
-# Default — pentatonic, both Shifts are sustain
-keyboard-music
-
-# Real piano feel — every key has a unique pitch
-keyboard-music --mapping chromatic
-
-# Right Shift is sustain, left Shift is for typing capitals
-keyboard-music --sustain-key right
-
-# Higher overall pitch
-keyboard-music --base-midi 60
+keyboard-music                                       # the default — chromatic, sustain on
+keyboard-music --mapping pentatonic                  # friendlier for random typing (no F/B)
+keyboard-music --no-sustain-on-start                 # Shift acts as momentary pedal
+keyboard-music --soundfont ~/Downloads/other.sf2     # use a different SoundFont
+keyboard-music --no-visualizer                       # headless mode (no window)
 ```
 
 ## How keys map to notes
 
-The default mapping walks the keyboard left-to-right top-to-bottom. Each character key produces a note from the C major pentatonic scale (C, D, E, G, A) so any random typing sounds consonant. Special keys (Space, Enter, etc.) hit fixed anchor pitches.
+Default chromatic mode: each letter maps to one semitone. Position in the alphabet = pitch (lower-left = lower pitch, upper-right = higher). So:
 
 ```
-Row:  ` 1 2 3 4 5 6 7 8 9 0 - =
-Scale: C C D E E G G A A C D D   (pentatonic, base = C3)
-
-Row:   q w e r t y u i o p [ ] \
-Scale: D D E G G A A C D D E G
-
-Row:   a s d f g h j k l ; '
-Scale: A A C D D E G G A C D
-
-Row:   z x c v b n m , . /
-Scale: E G A C D E G A C D
+q w e r t y u i o p  →  do re mi fa sol la si do re
+a s d f g h j k l     →  do re mi fa sol la si do re
+z x c v b n m         →  do re mi fa sol la si do
 ```
 
-Use `keyboard-music --list-keys` to see the exact MIDI table for your `--mapping` and `--base-midi`.
+The numbers row, `-`, `=`, `[`, `]`, `\`, `;`, `'`, `,`, `.`, `/` and the special keys (Space, Enter, F1–F12) all produce notes too. Run `keyboard-music --list-keys` for the full table.
 
 ## Sustain behavior
 
-The Shift key acts like a real piano's sustain pedal:
+- **Default**: sustain pedal always down. Released notes keep ringing until you `Ctrl + Alt + P` to panic.
+- **`--no-sustain-on-start`**: sustain pedal starts up. Hold `Shift` to sustain, release to clear.
+- **`--no-sustain`**: sustain is disabled entirely. Shift becomes a normal modifier.
 
-- **Press a key** → note starts ringing.
-- **Press Shift, then release the key** → the note keeps ringing (state goes to `SUSTAINED`).
-- **Release Shift** → all sustained notes stop. Keys you are still physically holding continue to ring until you release them.
-
-`--sustain-on-start` flips the default: every released note keeps ringing. In this mode Shift is intentionally a no-op (the pedal stays down forever). To silence what's accumulated, hit the panic hotkey `Ctrl + Alt + P`.
-
-`Ctrl + Alt + P` triggers a **panic** — every note is silenced immediately. Use this if you suspect a stuck note.
+`Ctrl + Alt + P` is the panic hotkey — silences everything currently ringing. Safe to spam.
 
 ## Transpose (octave-shift)
 
@@ -133,87 +150,93 @@ The keyboard covers 4 octaves by default. To reach lower or higher registers:
 - **↑ (Up arrow)** — shift the keyboard up one octave.
 - **↓ (Down arrow)** — shift the keyboard down one octave.
 
-The current shift is logged on stderr (`transpose: +12 semitones`). Press the arrows repeatedly to stack shifts; combine with `--base-midi` to set the starting register. Notes that are already ringing when you transpose are released at their original MIDI, so no stuck notes.
+The current shift is logged on stderr (`transpose: +12 semitones`). Notes already ringing when you transpose are released at their original MIDI, so no stuck notes.
 
 ## Sound realism
 
 The default config is tuned for realism on top of the Salamander Grand Piano V3 samples (88 keys × 16 velocity layers, 48 kHz / 24-bit — the best free piano SF2):
 
-- **Velocity dynamics**: every note gets a ±14 velocity jitter by default, mimicking how a real player never hits a key twice with the same force. For attack-based dynamics (fast taps loud, long holds gentle), add `--velocity-dynamic` (costs a 35 ms probe delay — imperceptible, real piano actions are similar).
+- **Velocity dynamics**: every note gets a ±14 velocity jitter by default, mimicking how a real player never hits a key twice with the same force. `--velocity-dynamic` enables attack-based dynamics (35 ms probe delay).
 - **Reverb**: a concert-hall preset (room-size 0.85, damp 0.3, level 0.5) — big, bright, wide. `--no-effects` disables reverb/chorus entirely for a dry studio sound.
 - **Chorus**: 3 voices, depth 1.5, level 0.25 — subtle stereo widening.
 
-Tweak further by editing `_DEFAULT_SETTINGS` in `synth.py`:
+Tweak further by editing `_DEFAULT_SETTINGS` in `synth.py`.
 
-| Setting | Default | Effect |
-|---|---|---|
-| `synth.reverb.room-size` | 0.85 | bigger = longer hall |
-| `synth.reverb.damp` | 0.3 | lower = brighter highs |
-| `synth.reverb.level` | 0.5 | wet/dry mix |
-| `synth.chorus.nr` | 3 | voice count (more = thicker) |
-| `synth.chorus.depth` | 1.5 | modulation depth |
-
-To go beyond the free ceiling (Salamander is it), run the `--midi-out` mode against a pro host — see below.
-
-## MIDI-out mode (pro-grade piano)
-
-If you have Logic, GarageBand, MainStage, Pianoteq, or Kontakt, the tool can forward keystrokes as real MIDI instead of using FluidSynth:
-
-```
-(TODO — not yet implemented)
-```
-
-## Building a standalone executable (macOS)
-
-See [`build/README.md`](build/README.md). The result is a `dist/keyboard-music/` directory you can copy anywhere and run without installing Python or Homebrew.
+To go beyond the free ceiling (Salamander is it), pass `--soundfont PATH` to point at any other SF2 you have (commercial pianos like Keyscape, or any GM soundfont).
 
 ## Troubleshooting
 
 ### No sound
 
-1. **macOS**: Did you grant Accessibility permission? Try `keyboard-music --wait-permission` to see clearer error output.
-2. **System audio**: Is your output device working? FluidSynth routes through the default OS audio driver.
-3. **libfluidsynth missing**: install it via your package manager (Homebrew, Chocolatey, apt).
+1. **macOS**: Did you grant Accessibility permission? Try `keyboard-music --wait-permission`.
+2. **System audio**: Is your output device working? `fluid-synth` requires the same library path that `afplay` uses; if `afplay /tmp/foo.wav` works but the tool doesn't, the issue is in the tool.
+3. **libfluidsynth missing**: install it via your package manager (`brew install fluid-synth`, `choco install fluidsynth`, `apt install fluidsynth`).
 
 ### Stuck notes
 
-1. Press `Ctrl + Alt + P` to panic-silence everything.
-2. If that doesn't work, kill the process: `pkill -f keyboard-music` (macOS/Linux) or close the PowerShell window (Windows).
-3. Report a bug with the steps to reproduce.
+Press `Ctrl + Alt + P` to panic-silence. If that doesn't work, kill the process.
 
 ### Latency / crackling
 
-Default settings aim for ~1.5 ms latency (period-size 64). If you hear crackling on a slow machine, edit `synth.py` and bump `period-size` to 128 or 256. Reinstalling is unnecessary — `pip install -e .` picks up changes immediately.
+Edit `synth.py` and bump `period-size` to 128 or 256, then rebuild. Lower latency = more CPU = more crackle risk.
 
 ### Wrong SoundFont
 
-```bash
-keyboard-music --soundfont /path/to/your.sf2
-```
+`keyboard-music --soundfont /path/to/your.sf2`.
 
 ### Re-download SoundFont
 
-```bash
-keyboard-music --redownload
-```
+`keyboard-music --redownload`, or delete `~/.keyboard-music/piano.sf2` and the next launch fetches a fresh copy.
 
-Or delete `~/.keyboard-music/piano.sf2` and the next launch will fetch a fresh copy.
+## Building a standalone executable (macOS)
+
+See [`build/README.md`](build/README.md). Produces `dist/keyboard-music/`, a self-contained macOS bundle — no Homebrew, no Python install needed on the target machine.
+
+```bash
+build/build.sh                  # 41 MB; downloads SF2 on first run
+TARGET_ARCH=arm64 build/build.sh        # native M1
+TARGET_ARCH=universal2 build/build.sh   # one bundle for both
+BUNDLE_SOUNDFONT=1 build/build.sh       # ship the 1.2 GB SF2 inside the bundle
+```
 
 ## Architecture
 
 | File | Role |
 |---|---|
 | `main.py` | CLI entry, signal handling, lifecycle |
-| `synth.py` | FluidSynth wrapper, low-latency settings, thread-safe note API |
+| `synth.py` | libfluidsynth ctypes wrapper, low-latency settings, sample-rate probe, bundled-lib lookup |
 | `mapping.py` | QWERTY → MIDI table (chromatic + pentatonic modes) |
 | `sustain.py` | Per-key state machine (IDLE / ACTIVE / SUSTAINED) |
-| `listener.py` | pynput adapter, panic hotkey tracking |
-| `soundfont.py` | Auto-download Salamander SF2, SHA-256 check, atomic cache |
+| `listener.py` | pynput adapter, panic hotkey tracking, octave-shift arrows |
+| `soundfont.py` | Auto-download + cache + bundled-path fallback for the SF2 |
 | `permissions.py` | macOS Accessibility detection + wait-for-grant helper |
+| `visualizer.py` | Tk staff-notation window, thread-safe queue, geometry helpers |
 | `errors.py` | Exception hierarchy |
+| `tests/` | 79 unit tests (mapping, sustain state machine, soundfont cache, visualizer geometry) |
+| `scripts/` | Install scripts (mac / Windows) + dylib bundling + SF2 bundling |
+| `build/` | PyInstaller spec, build.sh, build docs |
+
+Threading model: pynput runs the keyboard listener on its own thread; the Tk visualizer owns the main thread; FluidSynth calls are serialized through a `threading.Lock`.
+
+## Roadmap / not yet implemented
+
+- **MIDI-out mode** (`--midi-out`) — forward keystrokes as MIDI to a DAW (Logic, GarageBand, Pianoteq) for access to commercial piano libraries. Currently a TODO; see `build/README.md` for the planned interface.
+- **Per-platform bundled executable** — Windows and Linux builds.
+- **Configuration file** — `~/.keyboard-music/config.toml` for users who want to tweak without command-line flags.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports → GitHub issues. Pull requests welcome. By participating you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-MIT.
+[MIT](LICENSE) © 2026 laitingyou.
 
-The bundled SoundFont (Salamander Grand Piano V3) is CC-BY-3.0 by Alexander Holm.
+The bundled Salamander Grand Piano V3 SoundFont is CC-BY-3.0 by Alexander Holm.
+
+## Acknowledgments
+
+- [FluidSynth](https://www.fluidsynth.org/) — SoundFont synthesizer
+- [Salamander Grand Piano V3](https://freepats.zenvoid.org/Piano/SalamanderGrandPiano/) — the piano SoundFont, by Alexander Holm
+- [pynut]([pynut](https://pynput.readthedocs.io/)) — keyboard/mouse input library
+- [PyInstaller](https://pyinstaller.org/) — executable bundling
