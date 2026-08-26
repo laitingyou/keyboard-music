@@ -28,6 +28,18 @@ brew install fluid-synth
 echo "==> Installing keyboard-music (editable)..."
 python3 -m pip install --user -e .
 
+# Install the Claude Code skill if Claude appears to be installed. Safe to
+# always copy the file; it's tiny and does nothing without Claude.
+SKILL_DIR="$HOME/.claude/skills/keyboard-music-packaging"
+mkdir -p "$SKILL_DIR"
+cp skill/SKILL.md "$SKILL_DIR/SKILL.md"
+if [ -d "$HOME/.claude" ]; then
+    echo "==> Installed Claude Code skill at $SKILL_DIR"
+    echo "    Restart any active Claude Code session to load the skill."
+else
+    echo "==> Copied Claude Code skill to $SKILL_DIR (will activate when Claude Code is installed)."
+fi
+
 echo
 echo "Done. To run:"
     echo "    keyboard-music"

@@ -59,7 +59,7 @@ Press some letters. You should hear piano. A Tk window shows the notes on a treb
 bash scripts/install_macos.sh
 ```
 
-The script installs `fluid-synth` via Homebrew and the Python package in editable mode.
+The script installs `fluid-synth` via Homebrew, the Python package in editable mode, and **also installs the Claude Code skill** (`keyboard-music-packaging`) to `~/.claude/skills/`. Restart any active Claude Code session to load it.
 
 ### Windows
 
@@ -67,7 +67,7 @@ The script installs `fluid-synth` via Homebrew and the Python package in editabl
 powershell -ExecutionPolicy Bypass -File scripts\install_windows.ps1
 ```
 
-Uses Chocolatey if available; otherwise walks you through a manual FluidSynth install.
+Uses Chocolatey if available; otherwise walks you through a manual FluidSynth install. Also installs the Claude Code skill to `%USERPROFILE%\.claude\skills\`.
 
 ### Linux
 

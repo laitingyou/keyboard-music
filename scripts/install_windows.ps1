@@ -41,6 +41,18 @@ Test-Python
 Write-Host "==> Installing keyboard-music (editable)..."
 python -m pip install -e .
 
+# Install the Claude Code skill. The destination is the same on Windows;
+# PowerShell expands $HOME to the user's profile directory.
+$skillDir = Join-Path $HOME ".claude\skills\keyboard-music-packaging"
+New-Item -ItemType Directory -Force -Path $skillDir | Out-Null
+Copy-Item -Force "skill\SKILL.md" -Destination (Join-Path $skillDir "SKILL.md")
+if (Test-Path (Join-Path $HOME ".claude")) {
+    Write-Host "==> Installed Claude Code skill at $skillDir"
+    Write-Host "    Restart any active Claude Code session to load the skill."
+} else {
+    Write-Host "==> Copied Claude Code skill to $skillDir (will activate when Claude Code is installed)."
+}
+
 Write-Host ""
 Write-Host "Done. To run:"
 Write-Host "    keyboard-music"
