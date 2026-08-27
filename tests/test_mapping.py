@@ -13,6 +13,7 @@ from mapping import (
     PENTATONIC_MINOR,
     SPECIAL_KEYS,
     build_mapping,
+    build_piano_mapping,
     list_keys,
     quantize_to_scale,
 )
@@ -150,3 +151,133 @@ class TestListKeys:
         # Spot-check both kinds.
         assert "'`'" in names
         assert any(n.startswith("Key.") for n in names)
+
+
+# --- piano mapping ---------------------------------------------------------
+
+
+# Reference semitone offsets within an octave.
+BLACK = [1, 3, 6, 8, 10]
+WHITE = [0, 2, 4, 5, 7, 9, 11]
+
+# Per-row contents in physical left-to-right order, with the row's octave
+# offset relative to base_midi (set in test cases below).
+NUM_ROW = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+QW_ROW  = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"]
+AS_ROW  = ["a", "s", "d", "f", "g", "h", "j", "k", "l", ";"]
+ZX_ROW  = ["z", "x", "c", "v", "b", "n", "m", ",", ".", "/"]
+
+
+class TestPianoMapping:
+    BASE = 60  # C4
+
+    def test_number_row_only_black_keys(self):
+        m = build_piano_mapping(self.BASE)
+        for ch in NUM_ROW:
+            assert (m[ch] - self.BASE) % 12 in BLACK, (
+                f"{ch!r} → MIDI {m[ch]} (semitone "
+                f"{(m[ch] - self.BASE) % 12}) is not a black-key offset"
+            )
+
+    def test_qwerty_row_only_white_keys(self):
+        m = build_piano_mapping(self.BASE)
+        for ch in QW_ROW:
+            assert (m[ch] - self.BASE) % 12 in WHITE, (
+                f"{ch!r} → MIDI {m[ch]} (semitone "
+                f"{(m[ch] - self.BASE) % 12}) is not a white-key offset"
+            )
+
+    def test_asdf_row_only_black_keys(self):
+        m = build_piano_mapping(self.BASE)
+        for ch in AS_ROW:
+            assert (m[ch] - self.BASE) % 12 in BLACK
+
+    def test_zxcv_row_only_white_keys(self):
+        m = build_piano_mapping(self.BASE)
+        for ch in ZX_ROW:
+            assert (m[ch] - self.BASE) % 12 in WHITE
+
+    def test_left_to_right_ascending_within_each_row(self):
+        m = build_piano_mapping(self.BASE)
+        for row in (NUM_ROW, QW_ROW, AS_ROW, ZX_ROW):
+            pitches = [m[ch] for ch in row]
+            assert pitches == sorted(pitches), (
+                f"row {row[0]}..{row[-1]} not ascending: {pitches}"
+            )
+
+    def test_zero_is_highest_in_number_row(self):
+        # The user's hard requirement: 0 is at the far right, and in this row
+        # the rightmost key produces the highest pitch.
+        m = build_piano_mapping(self.BASE)
+        assert m["0"] > m["1"]
+        assert m["0"] == max(m[ch] for ch in NUM_ROW)
+
+    def test_zero_is_higher_than_nine(self):
+        m = build_piano_mapping(self.BASE)
+        assert m["0"] > m["9"]
+    def test_top_two_rows_higher_than_bottom_two(self):
+        # With default base_midi, the upper octave pair (rows 1+2) should
+        # produce pitches >= the lower octave pair (rows 3+4).
+        m = build_piano_mapping(self.BASE)
+        upper = max(max(m[ch] for ch in NUM_ROW), max(m[ch] for ch in QW_ROW))
+        lower = min(min(m[ch] for ch in AS_ROW), min(m[ch] for ch in ZX_ROW))
+        assert upper > lower
+
+    def test_q_and_1_are_adjacent_semitones(self):
+        # White C and black C# in the same upper-octave pair should differ by
+        # exactly 1 semitone — i.e. pressing 'q' then '1' is a half-step.
+        m = build_piano_mapping(self.BASE)
+        assert m["1"] - m["q"] == 1
+
+    def test_first_key_of_each_row_known_pitches(self):
+        # Concrete expectations make refactoring safer.
+        m = build_piano_mapping(self.BASE)
+        # '1' is the FIRST (leftmost) key in the number row; maps to C# in base octave
+        assert m["1"] == self.BASE + BLACK[0]         # 61 = C#4
+        # 'q' is leftmost in QWERTY row; C in base octave
+        assert m["q"] == self.BASE + WHITE[0]         # 60 = C4
+        # 'a' is leftmost in ASDF row; C# in octave below base
+        assert m["a"] == self.BASE - 12 + BLACK[0]    # 49 = C#3
+        # 'z' is leftmost in ZXCV row; C in octave below base
+        assert m["z"] == self.BASE - 12 + WHITE[0]    # 48 = C3
+
+    def test_rows_wrap_into_next_octave(self):
+        # Each row has 10 keys. Black rows (5 keys/octave × 2 octaves = 10 keys)
+        # span 21 semitones (9 + 12). White rows (10 keys, 7/octave) span 16
+        # semitones (one full octave of 12 + 4 partial).
+        m = build_piano_mapping(self.BASE)
+        assert m["0"] - m["1"] == 21   # digits (black): C#4 to A#5
+        assert m[";"] - m["a"] == 21   # asdf (black): C#3 to A#4
+        # QWERTY: C4 (q) to E5 (p) — one octave + 3 semitones
+        assert m["p"] - m["q"] == 16
+        # ZXCV: C3 (z) to E4 (/) — same span
+        assert m["/"] - m["z"] == 16
+
+    def test_special_keys_kept_at_absolute_midi(self):
+        # Space, Enter, etc. should play at their canonical anchors.
+        from mapping import SPECIAL_KEYS
+        m = build_piano_mapping(self.BASE)
+        for k, v in SPECIAL_KEYS.items():
+            assert m[k] == v
+
+    def test_invalid_base_midi_raises(self):
+        from errors import MappingError
+        with pytest.raises(MappingError):
+            build_piano_mapping(-1)
+        with pytest.raises(MappingError):
+            build_piano_mapping(128)
+
+    def test_base_too_high_overflow_raises(self):
+        # With base_midi=120, the number row's last key would exceed MIDI 127.
+        from errors import MappingError
+        with pytest.raises(MappingError):
+            build_piano_mapping(120)
+
+    def test_piano_mode_selectable_via_build_mapping(self):
+        m = build_mapping("piano", self.BASE)
+        # Spot-check a known mapping (the same as direct build_piano_mapping).
+        assert m["q"] == self.BASE + WHITE[0]    # 60 = C4
+        assert m["0"] > m["1"]
+
+
+# --- piano mapping end -----------------------------------------------------

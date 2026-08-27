@@ -122,7 +122,11 @@ keyboard-music --no-visualizer                       # headless mode (no window)
 
 ## How keys map to notes
 
-Default chromatic mode: each letter maps to one semitone. Position in the alphabet = pitch (lower-left = lower pitch, upper-right = higher). So:
+Four mapping modes are available; default is `chromatic`.
+
+### `--mapping chromatic` (default)
+
+Each letter maps to one semitone. Position in the alphabet = pitch (lower-left = lower pitch, upper-right = higher). So:
 
 ```
 q w e r t y u i o p  →  do re mi fa sol la si do re
@@ -131,6 +135,19 @@ z x c v b n m         →  do re mi fa sol la si do
 ```
 
 The numbers row, `-`, `=`, `[`, `]`, `\`, `;`, `'`, `,`, `.`, `/` and the special keys (Space, Enter, F1–F12) all produce notes too. Run `keyboard-music --list-keys` for the full table.
+
+### `--mapping piano`
+
+Four physical keyboard rows map to alternating black/white keys, mirroring a real piano layout (with `0` at the far right of the number row producing that row's highest pitch):
+
+| Row | Keys | Key type | Default range (`--base-midi 60`) |
+|---|---|---|---|
+| Number row | `1 2 3 4 5 6 7 8 9 0` | black keys | C#4 → A#5 |
+| Top letters | `q w e r t y u i o p` | white keys | C4 → E5 |
+| ASDF row | `a s d f g h j k l ;` | black keys | C#3 → A#4 |
+| ZXCV row | `z x c v b n m , . /` | white keys | C3 → E4 |
+
+Pressing `q` then `1` plays C4 then C#4 — a half-step, just like the real piano. Run `keyboard-music --list-keys --mapping piano` for the full table.
 
 ## Sustain behavior
 

@@ -103,10 +103,12 @@ def build_mapping(mode: str, base_midi: int = 48) -> dict:
         scale = PENTATONIC_MINOR
     elif mode == "chromatic":
         scale = CHROMATIC
+    elif mode == "piano":
+        return build_piano_mapping(base_midi)
     else:
         raise MappingError(
             f"Unknown mapping mode: {mode!r} "
-            "(expected 'pentatonic', 'pentatonic_minor', or 'chromatic')"
+            "(expected 'pentatonic', 'pentatonic_minor', 'chromatic', or 'piano')"
         )
 
     if not 0 <= base_midi <= 127:
@@ -129,6 +131,86 @@ def build_mapping(mode: str, base_midi: int = 48) -> dict:
         if scale is not CHROMATIC:
             midi = quantize_to_scale(midi, scale)
         mapping[char] = midi
+
+    return mapping
+
+
+# --- piano mapping mode -----------------------------------------------------
+
+# Within an octave, black keys are at semitone offsets [1, 3, 6, 8, 10]
+# (C#, D#, F#, G#, A#) and white keys at [0, 2, 4, 5, 7, 9, 11] (C, D, E, F, G, A, B).
+_PIANO_BLACK = [1, 3, 6, 8, 10]
+_PIANO_WHITE = [0, 2, 4, 5, 7, 9, 11]
+
+# Each physical row, in physical left-to-right order on the keyboard.
+# The number row's `0` is at the far right per the user's spec.
+# Each row has exactly 10 keys so that:
+#   - 0 / p / ; / / land on the rightmost position (ascending pitch there)
+#   - black-key rows cover exactly 2 octaves (10 / 5 black per octave)
+#   - white-key rows cover 1 octave + 3 semitones (10 / 7 white per octave)
+# Non-piano keys (`, -, =, [, ], \, ', ,, .) are not mapped in piano mode —
+# they're outside the playable piano surface for this layout.
+_PIANO_ROWS = [
+    (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"], "black",  0),  # base octave
+    (["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"], "white",  0),
+    (["a", "s", "d", "f", "g", "h", "j", "k", "l", ";"], "black", -1),  # one below base
+    (["z", "x", "c", "v", "b", "n", "m", ",", ".", "/"], "white", -1),
+]
+
+
+def build_piano_mapping(base_midi: int = 60) -> dict:
+    """Build a piano-row mapping.
+
+    Four physical keyboard rows map to alternating black/white keys:
+
+      Row 1 (digits):      black keys, base octave
+      Row 2 (top letters):  white keys, base octave
+      Row 3 (ASDF letters): black keys, one octave below base
+      Row 4 (ZXCV letters): white keys, one octave below base
+
+    Within each row, pitches ascend left-to-right. The number row's
+    ``0`` is the rightmost key, so it produces the highest pitch in
+    that row's range — matching the physical layout and the intuition
+    that the rightmost key plays "highest" on a piano.
+
+    Default ``base_midi=60`` (C4) covers roughly C3–E5 plus higher
+    fragments on the upper rows:
+
+      Row 4 (zxcv, white):  C3  to E4   (one full octave + 3 notes)
+      Row 3 (asdf, black):  C#3 to A#4 (exactly two octaves of black)
+      Row 2 (qwerty, white): C4  to E5   (one full octave + 3 notes)
+      Row 1 (digits, black): C#4 to A#5 (exactly two octaves of black)
+
+    Pressing ``1`` (digit row) and ``q`` (QWERTY row) gives the same
+    half-step relationship as a real piano: ``1`` is one semitone
+    above ``q`` (C#4 vs C4).
+    """
+    if not 0 <= base_midi <= 127:
+        raise MappingError(f"base_midi must be in [0, 127], got {base_midi}")
+
+    mapping: dict = {}
+    scale = {"black": _PIANO_BLACK, "white": _PIANO_WHITE}
+
+    for chars, key_type, octave_offset in _PIANO_ROWS:
+        offsets = scale[key_type]
+        n = len(offsets)
+        for i, char in enumerate(chars):
+            midi = (
+                base_midi
+                + 12 * (octave_offset + i // n)
+                + offsets[i % n]
+            )
+            if not 0 <= midi <= 127:
+                raise MappingError(
+                    f"piano mapping overflows MIDI 0–127: {char!r} → {midi}. "
+                    f"Lower --base-midi (currently {base_midi})."
+                )
+            mapping[char] = midi
+
+    # Special keys (Space, Enter, F-keys, etc.) keep absolute mappings so
+    # the user can still hit recognizable anchor notes.
+    for k, v in SPECIAL_KEYS.items():
+        mapping[k] = v
 
     return mapping
 

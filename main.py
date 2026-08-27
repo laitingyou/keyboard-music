@@ -33,9 +33,12 @@ def parse_args(argv=None) -> argparse.Namespace:
     )
     p.add_argument(
         "--mapping",
-        choices=["pentatonic", "pentatonic_minor", "chromatic"],
+        choices=["pentatonic", "pentatonic_minor", "chromatic", "piano"],
         default="chromatic",
-        help="Scale to map keys to. Default: chromatic (every key = a unique pitch).",
+        help="Scale to map keys to. Default: chromatic. "
+             "'piano' uses a 4-row piano layout (numbers=black, QWERTY=white, "
+             "ASDF=black, ZXCV=white) with 0 at the right producing the "
+             "highest pitch in its row.",
     )
     p.add_argument(
         "--soundfont",
