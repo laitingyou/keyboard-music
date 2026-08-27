@@ -1,6 +1,6 @@
 # keyboard-music
 
-**Play piano notes while you type.** A small cross-platform background tool that listens to keyboard input and plays notes through FluidSynth + a SoundFont piano. Default config: chromatic scale, sustain pedal always on, central C register.
+**Play piano notes while you type.** A small cross-platform background tool that listens to keyboard input and plays notes through FluidSynth + a SoundFont piano. Default config: **4-row piano layout** (numbers = black keys, QWERTY = white keys, ASDF = black keys, ZXCV = white keys, with `0` at the far right of the number row producing the highest pitch in that row), sustain pedal always on, central C register.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
@@ -15,7 +15,7 @@
 
 ## What it does
 
-Every key you press becomes a piano note. The defaults are tuned for a "background piano" experience: chromatic mapping (q w e r t y u = do re mi fa sol la si), sustain always on so released notes keep ringing, and a concert-hall reverb so the sound feels like a real instrument. The 1.2 GB SoundFont (Salamander Grand Piano V3) downloads automatically on first run.
+Every key you press becomes a piano note. The defaults are tuned for a "background piano" experience: 4-row piano layout (numbers are black keys, `q w e r t y u` = do re mi fa sol la si on the white-key row directly below), sustain always on so released notes keep ringing, and a concert-hall reverb so the sound feels like a real instrument. The 1.2 GB SoundFont (Salamander Grand Piano V3) downloads automatically on first run.
 
 ## Quick start
 
@@ -43,7 +43,7 @@ Press some letters. You should hear piano. A Tk window shows the notes on a treb
 
 - **All keys map to notes** — every printable key, plus Space, Enter, Backspace, Tab, Esc, F1–F12.
 - **Position-based mapping** — lower-left keys are lower-pitched, upper-right keys are higher-pitched.
-- **Chromatic by default** — every key has a unique pitch. `--mapping pentatonic` for random-text-friendly mode (no F or B).
+- **Piano-layout by default** — 4-row black/white key layout that mirrors a real piano (numbers = black keys, QWERTY = white keys, ASDF = black keys, ZXCV = white keys). `--mapping chromatic` for one-semitone-per-letter; `--mapping pentatonic` for random-text-friendly mode (no F or B).
 - **Sustain always on** by default — released notes keep ringing. Use `Ctrl + Alt + P` to panic-silence.
 - **Live staff-notation window** — a small Tk window draws each note on a treble staff in real time. Disable with `--no-visualizer`.
 - **Octave shift** — `Up` / `Down` arrows transpose the keyboard by an octave at a time, with the new offset logged on stderr.
@@ -95,7 +95,7 @@ This polls for the grant and resumes once you toggle Accessibility on in **Syste
 ### CLI flags
 
 ```
---mapping {pentatonic,pentatonic_minor,chromatic}   default: chromatic
+--mapping {pentatonic,pentatonic_minor,chromatic,piano}   default: piano
 --soundfont PATH                                    skip auto-download; use this SF2
 --sustain-key {left,right,either}                   default: either
 --base-midi INT                                     default: 60 (middle C). Range [0, 80]
@@ -113,7 +113,8 @@ This polls for the grant and resumes once you toggle Accessibility on in **Syste
 ### Examples
 
 ```bash
-keyboard-music                                       # the default — chromatic, sustain on
+keyboard-music                                       # the default — piano layout, sustain on
+keyboard-music --mapping chromatic                   # one semitone per letter (q=C, w=C#, ...)
 keyboard-music --mapping pentatonic                  # friendlier for random typing (no F/B)
 keyboard-music --no-sustain-on-start                 # Shift acts as momentary pedal
 keyboard-music --soundfont ~/Downloads/other.sf2     # use a different SoundFont
@@ -122,9 +123,22 @@ keyboard-music --no-visualizer                       # headless mode (no window)
 
 ## How keys map to notes
 
-Four mapping modes are available; default is `chromatic`.
+Four mapping modes are available; default is `piano`.
 
-### `--mapping chromatic` (default)
+### `--mapping piano` (default)
+
+Four physical keyboard rows map to alternating black/white keys, mirroring a real piano layout (with `0` at the far right of the number row producing that row's highest pitch):
+
+| Row | Keys | Key type | Default range (`--base-midi 60`) |
+|---|---|---|---|
+| Number row | `1 2 3 4 5 6 7 8 9 0` | black keys | C#4 → A#5 |
+| Top letters | `q w e r t y u i o p` | white keys | C4 → E5 |
+| ASDF row | `a s d f g h j k l ;` | black keys | C#3 → A#4 |
+| ZXCV row | `z x c v b n m , . /` | white keys | C3 → E4 |
+
+Pressing `q` then `1` plays C4 then C#4 — a half-step, just like the real piano. Run `keyboard-music --list-keys --mapping piano` for the full table.
+
+### `--mapping chromatic`
 
 Each letter maps to one semitone. Position in the alphabet = pitch (lower-left = lower pitch, upper-right = higher). So:
 
@@ -219,7 +233,7 @@ BUNDLE_SOUNDFONT=1 build/build.sh       # ship the 1.2 GB SF2 inside the bundle
 |---|---|
 | `main.py` | CLI entry, signal handling, lifecycle |
 | `synth.py` | libfluidsynth ctypes wrapper, low-latency settings, sample-rate probe, bundled-lib lookup |
-| `mapping.py` | QWERTY → MIDI table (chromatic + pentatonic modes) |
+| `mapping.py` | QWERTY → MIDI table (chromatic, pentatonic, piano-row layouts) |
 | `sustain.py` | Per-key state machine (IDLE / ACTIVE / SUSTAINED) |
 | `listener.py` | pynput adapter, panic hotkey tracking, octave-shift arrows |
 | `soundfont.py` | Auto-download + cache + bundled-path fallback for the SF2 |
