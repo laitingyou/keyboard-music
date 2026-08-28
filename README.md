@@ -107,7 +107,7 @@ This polls for the grant and resumes once you toggle Accessibility on in **Syste
 --no-sustain                                        disable sustain entirely (Shift becomes a normal modifier)
 --no-sustain-on-start                               start with sustain pedal up (Shift acts as momentary pedal)
 --no-effects                                        disable built-in reverb + chorus (dry sound)
---velocity-dynamic                                  attack-based velocity (fast taps loud, long holds gentle)
+--no-velocity-dynamic                               disable attack-based velocity (fixed velocity with ±22 jitter instead)
 --no-visualizer                                     no staff-notation window (headless)
 --wait-permission                                   macOS: poll for Accessibility grant
 --verbose, -v                                       debug logging
@@ -188,7 +188,7 @@ The current shift is logged on stderr (`transpose: +12 semitones`). Notes alread
 
 The default config is tuned for realism on top of the Salamander Grand Piano V3 samples (88 keys × 16 velocity layers, 48 kHz / 24-bit — the best free piano SF2):
 
-- **Velocity dynamics**: every note gets a ±14 velocity jitter by default, mimicking how a real player never hits a key twice with the same force. `--velocity-dynamic` enables attack-based dynamics (35 ms probe delay).
+- **Velocity dynamics (default on)**: attack-based — fast taps slam into the forte layers (percussive hammer attack), long holds fall to piano. The curve is steep and jittered so no two hits are identical. `--no-velocity-dynamic` reverts to a fixed velocity with ±22 jitter.
 - **Reverb**: a concert-hall preset (room-size 0.85, damp 0.3, level 0.5) — big, bright, wide. `--no-effects` disables reverb/chorus entirely for a dry studio sound.
 - **Chorus**: 3 voices, depth 1.5, level 0.25 — subtle stereo widening.
 

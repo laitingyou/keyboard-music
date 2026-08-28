@@ -59,7 +59,7 @@ VELOCITY_DELAY = 0.035
 
 # Base velocity and jitter for the default (non-dynamic) mode.
 BASE_VELOCITY = 100
-VELOCITY_JITTER = 14  # ±14 → notes vary from 86 to 114
+VELOCITY_JITTER = 22  # ±22 → notes vary from 78 to 122 (backup mode)
 
 
 # Sustain pedal key choices.
@@ -83,11 +83,14 @@ def _velocity_for_held(held: float, rng: random.Random) -> int:
     """Velocity from key-hold duration: fast taps are loud, long holds gentle.
 
     Real piano dynamics come from attack speed, not duration; on a computer
-    keyboard, hold duration is our only proxy for attack speed. The mapping
-    is 127 (very fast) down to ~60 (held > 500 ms), plus small jitter.
+    keyboard, hold duration is our only proxy for attack speed. The curve is
+    steep so quick taps slam into the forte layers (127 = ff hammer attack)
+    while gentle holds fall to piano (~55), giving the percussive dynamics
+    of a real piano. Small jitter on top so no two hits are identical.
     """
-    # held goes 0 → 0.5 s; velocity goes 127 → 60.
-    vel = 127 - 67 * min(1.0, held / 0.5)
+    # held goes 0 → 0.5 s; velocity goes 127 → ~55 (steep power curve).
+    frac = min(1.0, held / 0.5)
+    vel = 127 - 72 * frac ** 0.7
     vel += rng.randint(-8, 8)
     return max(1, min(127, int(vel)))
 

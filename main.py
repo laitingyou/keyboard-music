@@ -89,11 +89,12 @@ def parse_args(argv=None) -> argparse.Namespace:
         help="Disable FluidSynth's built-in reverb and chorus (drier sound).",
     )
     p.add_argument(
-        "--velocity-dynamic",
+        "--no-velocity-dynamic",
         action="store_true",
-        help="Attack-based velocity: fast taps play loud, long holds play "
-             "gentle (35 ms probe delay). Without this, every note uses a "
-             "fixed velocity with ±14 jitter.",
+        help="Disable attack-based velocity (the default). Fast taps play "
+             "loud with a percussive hammer attack, long holds play gentle - "
+             "like a real piano. With this flag, every note uses a fixed "
+             "velocity with ±22 jitter instead (35 ms probe delay removed).",
     )
     p.add_argument(
         "--no-visualizer",
@@ -283,7 +284,7 @@ def main(argv=None) -> int:
     controller = SustainController(
         synth, mapping, sustain_keys,
         sustain_on_start=sustain_on_start,
-        velocity_dynamic=args.velocity_dynamic,
+        velocity_dynamic=not args.no_velocity_dynamic,
     )
     kbd_listener = listener.KeyboardListener(
         controller,
@@ -335,7 +336,7 @@ def main(argv=None) -> int:
         args.sustain_key if not args.no_sustain else "disabled",
         f" soundfont={sf2.name}",
         " (sustain on by default)" if sustain_on_start else "",
-        " (velocity-dynamic)" if args.velocity_dynamic else "",
+        " (velocity-dynamic)" if not args.no_velocity_dynamic else "",
         " (visualizer)" if visualizer is not None else " (headless)",
     )
     if visualizer is not None:

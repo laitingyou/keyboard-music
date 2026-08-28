@@ -85,7 +85,8 @@ class TestChordMode:
         assert len(synth.notes_on) == 1
         midi, vel = synth.notes_on[0]
         assert midi == 48
-        assert 86 <= vel <= 114
+        from sustain import BASE_VELOCITY, VELOCITY_JITTER
+        assert BASE_VELOCITY - VELOCITY_JITTER <= vel <= BASE_VELOCITY + VELOCITY_JITTER
 
     def test_chord_key_with_mode_on_plays_full_triad(self):
         listener, synth = make_listener()
