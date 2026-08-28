@@ -35,8 +35,10 @@ CHORD_INTERVALS: Mapping[str, Tuple[int, ...]] = {
 }
 
 # Lower than the single-note default (100) so chords sit gently under
-# the foreground.
-CHORD_VELOCITY: int = 50
+# the foreground. NOTE: Salamander's velocity layers are real recordings -
+# values below ~60 map to near-inaudible pp playing. 72 is clearly audible
+# while still sounding soft next to single notes at 100.
+CHORD_VELOCITY: int = 72
 
 
 def chord_notes_for(root_midi: int, char: str) -> list[int]:

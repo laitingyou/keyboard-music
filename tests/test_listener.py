@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pytest
 
+from chord import CHORD_VELOCITY
 from listener import KeyboardListener
 from pynput.keyboard import Key, KeyCode
 from sustain import SustainController
@@ -91,7 +92,7 @@ class TestChordMode:
         listener._on_press(Key.caps_lock)
         listener._on_press(KeyCode.from_char("z"))
         # z -> C major triad (C-E-G) at the gentle chord velocity.
-        assert synth.notes_on == [(48, 50), (52, 50), (55, 50)]
+        assert synth.notes_on == [(48, CHORD_VELOCITY), (52, CHORD_VELOCITY), (55, CHORD_VELOCITY)]
 
     def test_chord_key_release_stops_only_its_chord(self):
         listener, synth = make_listener()
@@ -99,8 +100,8 @@ class TestChordMode:
         listener._on_press(KeyCode.from_char("z"))
         listener._on_press(KeyCode.from_char("x"))
         assert synth.notes_on == [
-            (48, 50), (52, 50), (55, 50),  # z chord
-            (50, 50), (53, 50), (57, 50),  # x chord
+            (48, CHORD_VELOCITY), (52, CHORD_VELOCITY), (55, CHORD_VELOCITY),  # z chord
+            (50, CHORD_VELOCITY), (53, CHORD_VELOCITY), (57, CHORD_VELOCITY),  # x chord
         ]
         synth.notes_off.clear()
         listener._on_release(KeyCode.from_char("z"))
@@ -114,7 +115,7 @@ class TestChordMode:
         listener._on_press(Key.caps_lock)
         listener._on_press(KeyCode.from_char("z"))
         listener._on_press(KeyCode.from_char("z"))  # re-press
-        assert synth.notes_on == [(48, 50), (52, 50), (55, 50)]
+        assert synth.notes_on == [(48, CHORD_VELOCITY), (52, CHORD_VELOCITY), (55, CHORD_VELOCITY)]
 
     def test_non_chord_key_with_mode_on_plays_single_note(self):
         # Caps Lock held but pressing a non-chord key (q, 1) plays single
@@ -165,4 +166,4 @@ class TestCustomChordToggleKey:
         listener._on_press(Key.tab)
         assert listener._chord_mode is True
         listener._on_press(KeyCode.from_char("z"))
-        assert synth.notes_on == [(48, 50), (52, 50), (55, 50)]
+        assert synth.notes_on == [(48, CHORD_VELOCITY), (52, CHORD_VELOCITY), (55, CHORD_VELOCITY)]
