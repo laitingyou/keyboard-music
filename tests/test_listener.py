@@ -155,6 +155,41 @@ class TestChordMode:
         pass
 
 
+class TestCapsLockCaseRegression:
+    """Caps Lock (the chord toggle) also enables the OS capitalization
+    state - subsequent letters arrive as 'Z', not 'z'. The listener must
+    normalize case before every lookup, or chord mode goes silent."""
+
+    def test_uppercase_z_still_fires_chord(self):
+        listener, synth = make_listener()
+        listener._on_press(Key.caps_lock)
+        # Real keyboard with caps on: 'Z' (uppercase!)
+        listener._on_press(KeyCode.from_char("Z"))
+        assert synth.notes_on == [
+            (48, CHORD_VELOCITY),
+            (52, CHORD_VELOCITY),
+            (55, CHORD_VELOCITY),
+        ]
+
+    def test_uppercase_z_release_stops_chord(self):
+        listener, synth = make_listener()
+        listener._on_press(Key.caps_lock)
+        listener._on_press(KeyCode.from_char("Z"))
+        assert "z" in listener._held_chords  # stored lowercase
+        listener._on_release(KeyCode.from_char("Z"))
+        # Release clears the chord and fires note-off for the triad.
+        assert listener._held_chords == {}
+        assert set(synth.notes_off) == {48, 52, 55}
+
+    def test_uppercase_letter_single_note_when_mode_off(self):
+        # With caps lock ON but chord mode OFF (or any uppercase letter via
+        # Shift), single notes should still resolve via lowercase mapping.
+        listener, synth = make_listener()
+        listener._on_press(KeyCode.from_char("Z"))  # uppercase, no chord mode
+        assert len(synth.notes_on) == 1
+        assert synth.notes_on[0][0] == 48
+
+
 class TestCustomChordToggleKey:
     def test_custom_toggle(self):
         # Use Tab as the chord toggle instead of Caps Lock.

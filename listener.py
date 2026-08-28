@@ -101,7 +101,10 @@ class KeyboardListener:
         char = getattr(key, "char", None)
         if not char:
             return ("ignore", None)
-        midi = self.controller.mapping.get(char)
+        # Lowercase: Caps Lock (our chord toggle) ALSO enables the OS's
+        # capitalization state, so subsequent letters arrive as 'Z' not 'z'.
+        # The mapping table is all-lowercase, so normalize before lookup.
+        midi = self.controller.mapping.get(char.lower())
         return ("note", midi) if midi is not None else ("ignore", None)
 
     def _is_panic_ready(self) -> bool:
@@ -134,6 +137,10 @@ class KeyboardListener:
             self._panic_mods.add(key)
             return
         char = getattr(key, "char", None)
+        if char is not None:
+            # Normalize to lowercase - Caps Lock makes letters arrive
+            # uppercase, and all our tables are lowercase-keyed.
+            char = char.lower()
         if char == self.PANIC_TRIGGER and self._is_panic_ready():
             self.controller.panic()
             return
@@ -172,6 +179,8 @@ class KeyboardListener:
             self._panic_mods.discard(key)
             return
         char = getattr(key, "char", None)
+        if char is not None:
+            char = char.lower()
         # If a chord key is released, stop its triad (the toggle key being
         # still held doesn't affect this — only the chord key's release).
         if char in self._held_chords:
