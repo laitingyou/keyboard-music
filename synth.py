@@ -223,21 +223,24 @@ def _default_sample_rate() -> int:
 # Reverb preset tuned for a concert-hall feel: big room, low damp (bright
 # highs that bloom), wide stereo image, generous wet mix. If you prefer a
 # tight dry sound, run with --no-effects.
+#
+# The tail here is deliberately long: piano samples decay naturally in
+# ~3-5s, and the room tail carries both single notes AND chords past their
+# dry decay. Lower damp = longer, brighter tail; higher level = wetter mix.
+# (Bluetooth speakers also clip quiet tails via their noise gate, so a
+# louder wet mix keeps the sustain audible over BT.)
 _DEFAULT_SETTINGS: list[tuple[str, str, object]] = [
     # (key, type, value) where type ∈ {"int", "num", "str"}
     # NOTE: synth.sample-rate is set separately from the probed device rate.
     ("synth.polyphony", "int", 256),
-    ("synth.gain", "num", 0.8),
+    ("synth.gain", "num", 0.9),
     ("synth.cpu-cores", "int", os.cpu_count() or 1),
-    # 4th-order interpolation is the FluidSynth 2.6 default — no setting needed.
+    # 4th-order interpolation is the FluidSynth 2.6 default - no setting needed.
     ("synth.reverb.active", "int", 1),
-    # Long-tail concert hall: the reverb carries single notes after their
-    # dry decay (piano notes naturally fade in ~3-5s; the room tail extends
-    # the perceived sustain). Lower damp = longer, brighter tail.
-    ("synth.reverb.damp", "num", 0.25),
-    ("synth.reverb.room-size", "num", 0.9),
+    ("synth.reverb.damp", "num", 0.2),
+    ("synth.reverb.room-size", "num", 1.0),
     ("synth.reverb.width", "num", 1.0),
-    ("synth.reverb.level", "num", 0.65),
+    ("synth.reverb.level", "num", 0.72),
     ("synth.chorus.active", "int", 1),
     ("synth.chorus.depth", "num", 1.5),
     ("synth.chorus.speed", "num", 0.25),
@@ -260,7 +263,7 @@ class PianoSynth:
         self,
         soundfont_path: Path,
         driver: Optional[str] = None,
-        gain: float = 0.8,
+        gain: float = 0.9,
         polyphony: int = 256,
         sample_rate: Optional[int] = None,
         no_effects: bool = False,
