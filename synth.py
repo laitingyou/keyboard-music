@@ -231,10 +231,13 @@ _DEFAULT_SETTINGS: list[tuple[str, str, object]] = [
     ("synth.cpu-cores", "int", os.cpu_count() or 1),
     # 4th-order interpolation is the FluidSynth 2.6 default — no setting needed.
     ("synth.reverb.active", "int", 1),
-    ("synth.reverb.damp", "num", 0.3),
-    ("synth.reverb.room-size", "num", 0.85),
+    # Long-tail concert hall: the reverb carries single notes after their
+    # dry decay (piano notes naturally fade in ~3-5s; the room tail extends
+    # the perceived sustain). Lower damp = longer, brighter tail.
+    ("synth.reverb.damp", "num", 0.25),
+    ("synth.reverb.room-size", "num", 0.9),
     ("synth.reverb.width", "num", 1.0),
-    ("synth.reverb.level", "num", 0.5),
+    ("synth.reverb.level", "num", 0.65),
     ("synth.chorus.active", "int", 1),
     ("synth.chorus.depth", "num", 1.5),
     ("synth.chorus.speed", "num", 0.25),
