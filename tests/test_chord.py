@@ -30,9 +30,9 @@ class TestChordData:
             assert len(ivs) == 3
 
     def test_velocity_is_low_for_gentle_chords(self):
-        # The user requested 温柔 (gentle) — velocity well under the
-        # default single-note velocity of 100.
-        assert 30 <= CHORD_VELOCITY <= 80
+        # The user requested 温柔 (gentle) — velocity slightly under the
+        # default single-note velocity of 100, but clearly audible.
+        assert 70 <= CHORD_VELOCITY <= 100
 
     def test_chord_quality_mix_has_both_major_and_minor(self):
         # Major: intervals = (0, 4, 7). Minor: (0, 3, 7). Both should be
