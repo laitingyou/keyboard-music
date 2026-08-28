@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 from errors import KeyboardMusicError
-from listener import KeyboardListener
+import listener  # imported as a module so we can read CHORD_TOGGLE_KEYS etc.
 from mapping import build_mapping, list_keys
 from permissions import (
     check_accessibility,
@@ -285,7 +285,7 @@ def main(argv=None) -> int:
         sustain_on_start=sustain_on_start,
         velocity_dynamic=args.velocity_dynamic,
     )
-    listener = KeyboardListener(
+    listener = listener.KeyboardListener(
         controller,
         chord_toggle_key=listener.CHORD_TOGGLE_KEYS[args.chord_toggle],
     )
