@@ -64,8 +64,9 @@ class KeyboardListener:
         # Chord mode state: toggled ON/OFF by pressing the chord-toggle key
         # once (like Caps Lock itself - no need to hold it).
         self._chord_mode: bool = False
-        # Active chord keys: char -> list of MIDI notes currently sounding.
-        self._held_chords: dict[str, list[int]] = {}
+        # Chord keys currently physically held (routing only; note state and
+        # sustain tracking live in the controller).
+        self._chord_chars: set = set()
 
     # --- public API -------------------------------------------------------
 
@@ -147,7 +148,8 @@ class KeyboardListener:
 
         # Chord mode: char keys in the ZXCV row trigger triads.
         if self._chord_mode and char in CHORD_INTERVALS:
-            if char not in self._held_chords:  # don't re-trigger same key
+            if char not in self._chord_chars:  # don't re-trigger same key
+                self._chord_chars.add(char)
                 self._start_chord(char)
             return
 
@@ -160,15 +162,16 @@ class KeyboardListener:
 
     def _start_chord(self, char: str) -> None:
         root_midi = self.controller.mapping.get(char)
-        notes = chord_notes_for(root_midi, char) if root_midi is not None else []
-        for n in notes:
-            self.controller.on_chord_note_on(n, CHORD_VELOCITY)
-        if notes:
-            self._held_chords[char] = notes
+        if root_midi is None:
+            return
+        # Apply live transposition like the single-note path does, so the
+        # arrow keys move chords together with melodies.
+        root = max(0, min(127, root_midi + self.controller.trans))
+        notes = chord_notes_for(root, char)
+        self.controller.on_chord_down(char, notes, CHORD_VELOCITY)
 
     def _stop_chord(self, char: str) -> None:
-        for n in self._held_chords.pop(char, []):
-            self.controller.on_chord_note_off(n)
+        self.controller.on_chord_up(char)
 
     def _on_release(self, key) -> None:
         # The chord-toggle key only acts on press (toggle semantics) - its
@@ -183,7 +186,8 @@ class KeyboardListener:
             char = char.lower()
         # If a chord key is released, stop its triad (the toggle key being
         # still held doesn't affect this — only the chord key's release).
-        if char in self._held_chords:
+        if char in self._chord_chars:
+            self._chord_chars.discard(char)
             self._stop_chord(char)
             return
         kind, _ = self._resolve(key)

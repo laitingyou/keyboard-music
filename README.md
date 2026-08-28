@@ -44,7 +44,10 @@ Press some letters. You should hear piano. A Tk window shows the notes on a treb
 - **All keys map to notes** — every printable key, plus Space, Enter, Backspace, Tab, Esc, F1–F12.
 - **Position-based mapping** — lower-left keys are lower-pitched, upper-right keys are higher-pitched.
 - **Piano-layout by default** — 4-row black/white key layout that mirrors a real piano (numbers = black keys, QWERTY = white keys, ASDF = black keys, ZXCV = white keys). `--mapping chromatic` for one-semitone-per-letter; `--mapping pentatonic` for random-text-friendly mode (no F or B).
-- **Chord mode** — hold Caps Lock (configurable via `--chord-toggle`) and press keys on the ZXCV row to play triads at low velocity (~50/127). Each ZXCV key maps to a different triad: z=C major, x=D minor, c=E minor, v=F major, b=G major, n=A minor, m=B minor. Single notes still play normally on the other rows.
+- **Chord mode** — press Caps Lock once (configurable via `--chord-toggle`) to toggle. The bottom two rows (ASDF + ZXCV) become a chord pad while the top two rows keep playing melody — like a real piano split:
+  - ZXCV row (white keys): diatonic C-major chords (z=C, x=Dm, c=Em, v=F, b=G, n=Am, m=Bm)
+  - ASDF row (black keys): minor triads (a=C#m, s=D#m, d=F#m, f=G#m, g=A#m)
+  - Chords play at a gentle velocity (72/127) and follow the sustain pedal — released chords keep ringing by default, silenced with `Ctrl + Alt + P`
 - **Sustain always on** by default — released notes keep ringing. Use `Ctrl + Alt + P` to panic-silence.
 - **Live staff-notation window** — a small Tk window draws each note on a treble staff in real time. Disable with `--no-visualizer`.
 - **Octave shift** — `Up` / `Down` arrows transpose the keyboard by an octave at a time, with the new offset logged on stderr.

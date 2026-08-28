@@ -137,6 +137,9 @@ class SustainController:
         # velocity-dynamic bookkeeping: pending timers + press timestamps.
         self._pending: dict = {}    # key -> threading.Timer (note not yet fired)
         self._press_times: dict = {}  # key -> time.monotonic() at press
+        # Chord mode bookkeeping (sustain-aware, mirrors _key_states).
+        self._chord_states: dict = {}      # char -> [midi notes] (physically held)
+        self._sustained_chords: list = []  # [ [midi notes], ... ] released under sustain
 
     # --- properties exposed for the listener ------------------------------
 
@@ -253,6 +256,11 @@ class SustainController:
                 if state == KeyState.SUSTAINED:
                     self._synth.note_off(midi)
                     del self._key_states[key]
+            # Chords released under sustain stop too, just like single notes.
+            for notes in self._sustained_chords:
+                for n in notes:
+                    self._synth.note_off(n)
+            self._sustained_chords.clear()
 
     def panic(self) -> None:
         with self._state_lock:
@@ -262,26 +270,43 @@ class SustainController:
             self._press_times.clear()
             self._synth.panic()
             self._key_states.clear()
+            self._chord_states.clear()
+            self._sustained_chords.clear()
             # Don't reset sustain_active - it reflects user intent (Shift
             # still held = pedal still down). Panic only silences what's
             # currently ringing.
 
-    # --- chord mode (fire-and-forget; not tied to key state) ----------
+    # --- chord mode (sustain-aware, mirrors single-note pedal logic) ---
 
-    def on_chord_note_on(self, midi: int, velocity: int) -> None:
-        """Trigger a single chord note. Bypasses the per-key state machine
-        so chord members can come and go independently of single-note keys."""
-        if not 0 <= midi <= 127:
-            return
+    def on_chord_down(self, char: str, notes: list[int], velocity: int) -> None:
+        """Fire a chord's note_on events and track it for sustain-aware
+        release. Mirrors on_key_down: notes ring while held, and their fate
+        on release follows the sustain pedal state."""
         with self._state_lock:
-            self._synth.note_on(midi, velocity)
+            playable = [n for n in notes if 0 <= n <= 127]
+            for n in playable:
+                self._synth.note_on(n, velocity)
+            if playable:
+                self._chord_states[char] = playable
 
-    def on_chord_note_off(self, midi: int) -> None:
-        """Release a single chord note."""
-        if not 0 <= midi <= 127:
-            return
+    def on_chord_up(self, char: str) -> None:
+        """Release a chord: under sustain it keeps ringing (like single
+        notes do); otherwise each member gets an immediate note_off."""
         with self._state_lock:
-            self._synth.note_off(midi)
+            notes = self._chord_states.pop(char, None)
+            if notes is None:
+                return
+            if self.sustain_active:
+                self._sustained_chords.append(notes)
+            else:
+                for n in notes:
+                    self._synth.note_off(n)
+
+    def held_chord_notes(self, char: str) -> Optional[list[int]]:
+        """Introspection for tests: notes of a currently-held chord."""
+        with self._state_lock:
+            n = self._chord_states.get(char)
+            return list(n) if n else None
 
     # --- introspection for tests -----------------------------------------
 

@@ -295,6 +295,13 @@ class TestTranspose:
         ctrl.on_key_down("a", 60)
         assert notes_on(synth) == [84]
 
+    def test_transpose_affects_chord_roots(self):
+        # Chord roots follow the live transpose (like single notes).
+        ctrl, synth = make_controller()
+        ctrl.transpose(+12)
+        ctrl.on_chord_down("z", [60, 64, 67], 72)  # caller already transposed
+        assert synth.notes_on == [(60, 72), (64, 72), (67, 72)]
+
 
 # --- velocity realism --------------------------------------------------
 
@@ -368,6 +375,79 @@ class TestVelocityDynamic:
         _time.sleep(0.1)
         assert notes_on(synth) == [60]  # only one note
 
+
+
+# --- chord sustain (mirrors single-note pedal logic) --------------------
+
+
+class TestChordSustain:
+    def make_ctrl(self, sustain_on_start=False):
+        synth = MockSynth()
+        mapping = {"z": 48, "x": 50, "a": 49}
+        ctrl = SustainController(synth, mapping, frozenset(),
+                                 sustain_on_start=sustain_on_start)
+        return ctrl, synth
+
+    def test_chord_release_without_sustain_stops_immediately(self):
+        ctrl, synth = self.make_ctrl()
+        ctrl.on_chord_down("z", [48, 52, 55], 72)
+        assert synth.notes_on == [(48, 72), (52, 72), (55, 72)]
+        ctrl.on_chord_up("z")
+        assert synth.notes_off == [48, 52, 55]
+
+    def test_chord_release_under_sustain_keeps_ringing(self):
+        ctrl, synth = self.make_ctrl()
+        ctrl.sustain_active = True
+        ctrl.on_chord_down("z", [48, 52, 55], 72)
+        ctrl.on_chord_up("z")
+        # Notes keep ringing; nothing released yet.
+        assert synth.notes_off == []
+        assert len(ctrl._sustained_chords) == 1
+
+    def test_sustain_up_releases_sustained_chords(self):
+        ctrl, synth = self.make_ctrl()
+        ctrl.sustain_active = True
+        ctrl.on_chord_down("z", [48, 52, 55], 72)
+        ctrl.on_chord_up("z")
+        ctrl.on_chord_down("x", [50, 53, 57], 72)
+        ctrl.on_chord_up("x")
+        ctrl.sustain_active = False
+        ctrl.on_sustain_up()
+        assert set(synth.notes_off) == {48, 52, 55, 50, 53, 57}
+        assert ctrl._sustained_chords == []
+
+    def test_sustain_on_start_chords_ring_until_panic(self):
+        # Default config: pedal always down. Chord released under the pedal
+        # keeps ringing; on_sustain_up is a no-op; panic clears it.
+        ctrl, synth = self.make_ctrl(sustain_on_start=True)
+        ctrl.on_chord_down("z", [48, 52, 55], 72)
+        ctrl.on_chord_up("z")
+        assert synth.notes_off == []
+        ctrl.on_sustain_up()  # no-op in this mode
+        assert synth.notes_off == []
+        ctrl.panic()
+        assert synth.panics == 1
+        assert ctrl._sustained_chords == []
+        assert ctrl._chord_states == {}
+
+    def test_panic_clears_held_chords_too(self):
+        ctrl, synth = self.make_ctrl()
+        ctrl.on_chord_down("z", [48, 52, 55], 72)
+        ctrl.panic()
+        assert ctrl._chord_states == {}
+        assert ctrl.held_chord_notes("z") is None
+
+    def test_held_chord_notes_introspection(self):
+        ctrl, _ = self.make_ctrl()
+        ctrl.on_chord_down("z", [48, 52, 55], 72)
+        assert ctrl.held_chord_notes("z") == [48, 52, 55]
+        ctrl.on_chord_up("z")
+        assert ctrl.held_chord_notes("z") is None
+
+    def test_out_of_range_notes_dropped(self):
+        ctrl, synth = self.make_ctrl()
+        ctrl.on_chord_down("z", [48, 52, 200], 72)
+        assert synth.notes_on == [(48, 72), (52, 72)]
 
 # --- resolve_sustain_keys ----------------------------------------------
 

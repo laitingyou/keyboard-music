@@ -1,37 +1,50 @@
 """Chord definitions for Caps-Lock chord mode.
 
-When chord mode is active (held by default via Caps Lock), pressing a key
-on the ZXCV row triggers a triad instead of a single note. Each chord key
-is bound to a root note — the chord intervals are added to that root.
+When chord mode is toggled on (via Caps Lock), the bottom two keyboard
+rows play triads instead of single notes; the top two rows keep playing
+single notes - a piano-like "split keyboard" (chords for the left hand,
+melody for the right).
 
-The 10 ZXCV keys cover the diatonic scale of the row's natural pitch
-range. The mix of major and minor triads (and one B minor for a touch of
-warmth at the top) gives a varied harmonic palette without sounding
-startling, matching the user's request for "温柔".
+Each chord key is bound to a root note (its mapped pitch); the chord
+intervals are added to that root.
 
-Held with low velocity (``CHORD_VELOCITY``) so chords sit underneath
-single-note melodies rather than dominating them.
+  Row 4 (ZXCV): diatonic triads of C major - the familiar song chords.
+  Row 3 (ASDF): minor triads on black-key roots - lush chromatic colors
+                (C#m, D#m, F#m, G#m, A#m) that blend gently under melodies.
+
+Chords fire at ``CHORD_VELOCITY`` (lower than the single-note default)
+so they sit underneath melodies rather than dominating them.
 """
 
 from __future__ import annotations
 
 from typing import Mapping, Tuple
 
-# Semitone intervals from the root for each chord key on the ZXCV row.
-# Mix of major (0, 4, 7) and minor (0, 3, 7) triads.
+# Semitone intervals from the root for each chord key. Keys on rows 3 and 4
+# form the chord zone; rows 1-2 are unaffected (melody zone).
 CHORD_INTERVALS: Mapping[str, Tuple[int, ...]] = {
-    # Lower octave (ZXCV in piano mode → C3..B3)
-    "z": (0, 4, 7),   # C major (C–E–G)
-    "x": (0, 3, 7),   # D minor (D–F–A)
-    "c": (0, 3, 7),   # E minor (E–G–B)
-    "v": (0, 4, 7),   # F major (F–A–C, C is one octave above)
-    "b": (0, 4, 7),   # G major (G–B–D)
-    "n": (0, 3, 7),   # A minor (A–C–E, C and E one octave above)
-    "m": (0, 3, 7),   # B minor (B–D–F#, both D and F# one octave above)
-    # Upper octave (", . / in piano mode → C4..E4)
-    ",": (0, 4, 7),   # C major
+    # Row 4 (ZXCV) - white-key roots in piano mode (C3..E4)
+    "z": (0, 4, 7),   # C major (C-E-G)
+    "x": (0, 3, 7),   # D minor (D-F-A)
+    "c": (0, 3, 7),   # E minor (E-G-B)
+    "v": (0, 4, 7),   # F major (F-A-C)
+    "b": (0, 4, 7),   # G major (G-B-D)
+    "n": (0, 3, 7),   # A minor (A-C-E)
+    "m": (0, 3, 7),   # B minor (B-D-F#)
+    ",": (0, 4, 7),   # C major (next octave)
     ".": (0, 3, 7),   # D minor
     "/": (0, 3, 7),   # E minor
+    # Row 3 (ASDF) - black-key roots in piano mode (C#3..A#4)
+    "a": (0, 3, 7),   # C# minor (C#-E-G#)
+    "s": (0, 3, 7),   # D# minor (D#-F#-A#)
+    "d": (0, 3, 7),   # F# minor (F#-A-C#)
+    "f": (0, 3, 7),   # G# minor (G#-B-D#)
+    "g": (0, 3, 7),   # A# minor (A#-C#-F)
+    "h": (0, 3, 7),   # C# minor (octave up)
+    "j": (0, 3, 7),   # D# minor
+    "k": (0, 3, 7),   # F# minor
+    "l": (0, 3, 7),   # G# minor
+    ";": (0, 3, 7),   # A# minor
 }
 
 # Lower than the single-note default (100) so chords sit gently under

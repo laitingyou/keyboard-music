@@ -7,13 +7,14 @@ import pytest
 from chord import CHORD_INTERVALS, CHORD_VELOCITY, chord_notes_for
 
 
-# Each key on the ZXCV row maps to exactly one triad.
-EXPECTED_KEYS = list("zxcvbnm,./")
+# Keys on rows 3 and 4 (ASDF + ZXCV) map to exactly one triad each.
+EXPECTED_KEYS = list("asdfghjkl;zxcvbnm,./")
 
 
 class TestChordData:
     def test_chord_keys_complete(self):
-        # The 10 ZXCV keys all have chord definitions; nothing else does.
+        # The 20 keys of rows 3+4 (ASDF + ZXCV) all have chord definitions;
+        # nothing else does.
         assert set(CHORD_INTERVALS) == set(EXPECTED_KEYS)
 
     def test_intervals_are_in_octave(self):
@@ -59,6 +60,21 @@ class TestChordNotesFor:
     def test_upper_octave_comma_plays_C_major(self):
         notes = chord_notes_for(60, ",")  # C4 = 60
         assert notes == [60, 64, 67]  # C4, E4, G4
+
+    def test_a_plays_C_sharp_minor(self):
+        # Piano mode: a = C#3 (49). Minor triad: C#3-E3-G#3.
+        notes = chord_notes_for(49, "a")
+        assert notes == [49, 52, 56]
+
+    def test_g_plays_A_sharp_minor(self):
+        # Piano mode: g = A#3 (58). A# minor: A#3-C#4-F4.
+        notes = chord_notes_for(58, "g")
+        assert notes == [58, 61, 65]
+
+    def test_asdf_row_all_minor(self):
+        # Row 3 (ASDF) is uniformly minor for a gentle, lush palette.
+        for ch in "asdfghjkl;":
+            assert CHORD_INTERVALS[ch] == (0, 3, 7), f"{ch!r} not minor"
 
     def test_unknown_char_returns_empty(self):
         assert chord_notes_for(60, "q") == []

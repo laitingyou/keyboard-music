@@ -136,17 +136,17 @@ class TestChordMode:
         listener, synth = make_listener()
         listener._on_press(Key.caps_lock)
         listener._on_press(KeyCode.from_char("z"))
-        assert "z" in listener._held_chords
+        assert "z" in listener.controller._chord_states
         listener._on_release(Key.caps_lock)
         # Toggle semantics: release is a no-op - mode stays ON.
         assert listener._chord_mode is True
-        assert "z" in listener._held_chords
+        assert "z" in listener.controller._chord_states
         # Toggling OFF mid-chord leaves held chords ringing.
         listener._on_press(Key.caps_lock)
         assert listener._chord_mode is False
         # Releasing z finally stops it.
         listener._on_release(KeyCode.from_char("z"))
-        assert "z" not in listener._held_chords
+        assert "z" not in listener.controller._chord_states
 
     def test_out_of_range_chord_notes_are_dropped(self):
         # If the chord root is so high that some intervals exceed 127,
@@ -175,10 +175,10 @@ class TestCapsLockCaseRegression:
         listener, synth = make_listener()
         listener._on_press(Key.caps_lock)
         listener._on_press(KeyCode.from_char("Z"))
-        assert "z" in listener._held_chords  # stored lowercase
+        assert "z" in listener.controller._chord_states  # stored lowercase
         listener._on_release(KeyCode.from_char("Z"))
         # Release clears the chord and fires note-off for the triad.
-        assert listener._held_chords == {}
+        assert listener.controller._chord_states == {}
         assert set(synth.notes_off) == {48, 52, 55}
 
     def test_uppercase_letter_single_note_when_mode_off(self):
@@ -188,6 +188,20 @@ class TestCapsLockCaseRegression:
         listener._on_press(KeyCode.from_char("Z"))  # uppercase, no chord mode
         assert len(synth.notes_on) == 1
         assert synth.notes_on[0][0] == 48
+
+    def test_transpose_moves_chords_with_melody(self):
+        # Arrow-key transpose must shift chord roots exactly like single
+        # notes, so both hands stay in the same key.
+        listener, synth = make_listener()
+        listener._on_press(Key.up)  # +12
+        listener._on_press(Key.caps_lock)
+        listener._on_press(KeyCode.from_char("z"))
+        # z root = 48 + 12 = 60 (C4), then C-E-G triad
+        assert synth.notes_on == [
+            (60, CHORD_VELOCITY),
+            (64, CHORD_VELOCITY),
+            (67, CHORD_VELOCITY),
+        ]
 
 
 class TestCustomChordToggleKey:
