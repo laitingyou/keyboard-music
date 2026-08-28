@@ -285,7 +285,7 @@ def main(argv=None) -> int:
         sustain_on_start=sustain_on_start,
         velocity_dynamic=args.velocity_dynamic,
     )
-    listener = listener.KeyboardListener(
+    kbd_listener = listener.KeyboardListener(
         controller,
         chord_toggle_key=listener.CHORD_TOGGLE_KEYS[args.chord_toggle],
     )
@@ -306,7 +306,7 @@ def main(argv=None) -> int:
         except Exception:  # noqa: BLE001
             pass
         try:
-            listener.stop()
+            kbd_listener.stop()
         except Exception:  # noqa: BLE001
             pass
         try:
@@ -340,15 +340,15 @@ def main(argv=None) -> int:
     )
     if visualizer is not None:
         # Tk must own the main thread; pynput runs on its own thread.
-        listener.start()
+        kbd_listener.start()
         if args.self_test:
             _stage_note("3-listener-started", 60)
         visualizer.run()
     else:
-        listener.start()
+        kbd_listener.start()
         if args.self_test:
             _stage_note("3-listener-started", 60)
-        listener.join()
+        kbd_listener.join()
 
     # run() returns when stop() is called from another thread.
     controller.panic()
