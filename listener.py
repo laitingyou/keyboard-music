@@ -61,7 +61,8 @@ class KeyboardListener:
         )
         # Modifiers currently held (used for panic hotkey detection).
         self._panic_mods: set = set()
-        # Chord mode state: True while the toggle key is held.
+        # Chord mode state: toggled ON/OFF by pressing the chord-toggle key
+        # once (like Caps Lock itself - no need to hold it).
         self._chord_mode: bool = False
         # Active chord keys: char -> list of MIDI notes currently sounding.
         self._held_chords: dict[str, list[int]] = {}
@@ -120,9 +121,12 @@ class KeyboardListener:
             print(f"transpose: {new_shift:+d} semitones", file=sys.stderr)
             return
 
-        # Chord-mode toggle key (default: Caps Lock).
+        # Chord mode: the toggle key flips it on/off with a single press (no hold
+        # needed), and chord keys on the ZXCV row fire triads while it's on.
         if key == self.chord_toggle_key:
-            self._chord_mode = True
+            self._chord_mode = not self._chord_mode
+            state = "ON" if self._chord_mode else "OFF"
+            print(f"chord mode: {state}", file=sys.stderr)
             return
 
         # Panic hotkey: track modifiers, fire on 'p' trigger.
@@ -160,8 +164,9 @@ class KeyboardListener:
             self.controller.on_chord_note_off(n)
 
     def _on_release(self, key) -> None:
+        # The chord-toggle key only acts on press (toggle semantics) - its
+        # release is a no-op, so chord mode persists until the next press.
         if key == self.chord_toggle_key:
-            self._chord_mode = False
             return
         if key in self.PANIC_MOD_KEYS:
             self._panic_mods.discard(key)

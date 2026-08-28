@@ -49,16 +49,32 @@ class TestChordMode:
         listener, _ = make_listener()
         assert listener._chord_mode is False
 
-    def test_pressing_caps_lock_enables_chord_mode(self):
+    def test_pressing_caps_lock_toggles_mode_on(self):
         listener, _ = make_listener()
         listener._on_press(Key.caps_lock)
         assert listener._chord_mode is True
 
-    def test_releasing_caps_lock_disables_chord_mode(self):
+    def test_releasing_caps_lock_keeps_mode_on(self):
+        # Toggle semantics: the mode persists after the key is released -
+        # only a second press turns it off. No holding required.
         listener, _ = make_listener()
         listener._on_press(Key.caps_lock)
         listener._on_release(Key.caps_lock)
+        assert listener._chord_mode is True
+
+    def test_second_press_toggles_mode_off(self):
+        listener, _ = make_listener()
+        listener._on_press(Key.caps_lock)
+        listener._on_press(Key.caps_lock)
         assert listener._chord_mode is False
+
+    def test_mode_persists_across_other_keys(self):
+        listener, _ = make_listener()
+        listener._on_press(Key.caps_lock)
+        listener._on_press(KeyCode.from_char("q"))
+        listener._on_release(KeyCode.from_char("q"))
+        listener._on_release(Key.caps_lock)
+        assert listener._chord_mode is True
 
     def test_chord_key_with_mode_off_plays_single_note(self):
         # Without Caps Lock, pressing Z plays just the single mapped note
@@ -121,10 +137,12 @@ class TestChordMode:
         listener._on_press(KeyCode.from_char("z"))
         assert "z" in listener._held_chords
         listener._on_release(Key.caps_lock)
-        # Chord mode is now off, but Z is still physically held — the chord
-        # continues. The chord only stops when Z itself is released.
-        assert listener._chord_mode is False
+        # Toggle semantics: release is a no-op - mode stays ON.
+        assert listener._chord_mode is True
         assert "z" in listener._held_chords
+        # Toggling OFF mid-chord leaves held chords ringing.
+        listener._on_press(Key.caps_lock)
+        assert listener._chord_mode is False
         # Releasing z finally stops it.
         listener._on_release(KeyCode.from_char("z"))
         assert "z" not in listener._held_chords
