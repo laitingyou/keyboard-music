@@ -45,6 +45,8 @@ py-modules = [
     "listener",
     "soundfont",
     "permissions",
+    "visualizer",
+    "chord",
     "main",
 ]
 
