@@ -44,6 +44,7 @@ Press some letters. You should hear piano. A Tk window shows the notes on a treb
 - **All keys map to notes** — every printable key, plus Space, Enter, Backspace, Tab, Esc, F1–F12.
 - **Position-based mapping** — lower-left keys are lower-pitched, upper-right keys are higher-pitched.
 - **Piano-layout by default** — 4-row black/white key layout that mirrors a real piano (numbers = black keys, QWERTY = white keys, ASDF = black keys, ZXCV = white keys). `--mapping chromatic` for one-semitone-per-letter; `--mapping pentatonic` for random-text-friendly mode (no F or B).
+- **Chord mode** — hold Caps Lock (configurable via `--chord-toggle`) and press keys on the ZXCV row to play triads at low velocity (~50/127). Each ZXCV key maps to a different triad: z=C major, x=D minor, c=E minor, v=F major, b=G major, n=A minor, m=B minor. Single notes still play normally on the other rows.
 - **Sustain always on** by default — released notes keep ringing. Use `Ctrl + Alt + P` to panic-silence.
 - **Live staff-notation window** — a small Tk window draws each note on a treble staff in real time. Disable with `--no-visualizer`.
 - **Octave shift** — `Up` / `Down` arrows transpose the keyboard by an octave at a time, with the new offset logged on stderr.
@@ -234,6 +235,7 @@ BUNDLE_SOUNDFONT=1 build/build.sh       # ship the 1.2 GB SF2 inside the bundle
 | `main.py` | CLI entry, signal handling, lifecycle |
 | `synth.py` | libfluidsynth ctypes wrapper, low-latency settings, sample-rate probe, bundled-lib lookup |
 | `mapping.py` | QWERTY → MIDI table (chromatic, pentatonic, piano-row layouts) |
+| `chord.py` | Chord-interval table for the Caps-Lock chord mode |
 | `sustain.py` | Per-key state machine (IDLE / ACTIVE / SUSTAINED) |
 | `listener.py` | pynput adapter, panic hotkey tracking, octave-shift arrows |
 | `soundfont.py` | Auto-download + cache + bundled-path fallback for the SF2 |

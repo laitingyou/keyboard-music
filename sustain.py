@@ -266,6 +266,23 @@ class SustainController:
             # still held = pedal still down). Panic only silences what's
             # currently ringing.
 
+    # --- chord mode (fire-and-forget; not tied to key state) ----------
+
+    def on_chord_note_on(self, midi: int, velocity: int) -> None:
+        """Trigger a single chord note. Bypasses the per-key state machine
+        so chord members can come and go independently of single-note keys."""
+        if not 0 <= midi <= 127:
+            return
+        with self._state_lock:
+            self._synth.note_on(midi, velocity)
+
+    def on_chord_note_off(self, midi: int) -> None:
+        """Release a single chord note."""
+        if not 0 <= midi <= 127:
+            return
+        with self._state_lock:
+            self._synth.note_off(midi)
+
     # --- introspection for tests -----------------------------------------
 
     def active_notes(self) -> list[int]:

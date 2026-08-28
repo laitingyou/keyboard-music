@@ -101,6 +101,13 @@ def parse_args(argv=None) -> argparse.Namespace:
         help="Do not open the staff-notation window (headless mode).",
     )
     p.add_argument(
+        "--chord-toggle",
+        choices=list(listener.CHORD_TOGGLE_KEYS),
+        default="caps_lock",
+        help="Key that toggles chord mode (default: caps_lock). When held, "
+             "the ZXCV row plays triads instead of single notes.",
+    )
+    p.add_argument(
         "--self-test",
         action="store_true",
         help="Play a test note at each startup stage (synth init / window open / "
@@ -278,7 +285,10 @@ def main(argv=None) -> int:
         sustain_on_start=sustain_on_start,
         velocity_dynamic=args.velocity_dynamic,
     )
-    listener = KeyboardListener(controller)
+    listener = KeyboardListener(
+        controller,
+        chord_toggle_key=listener.CHORD_TOGGLE_KEYS[args.chord_toggle],
+    )
 
     # Signal handlers guarantee the synth is closed even on Ctrl+C.
     # Use os._exit() — sys.exit() raises SystemExit which pynput's listener

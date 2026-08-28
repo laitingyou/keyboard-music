@@ -5,6 +5,8 @@ Responsibilities:
     - Track Ctrl + Alt held simultaneously so the 'p' key triggers a panic.
     - Map Up/Down arrow keys to runtime octave-shift on the controller.
     - Forward 'note' events to SustainController, which owns all state.
+    - When the chord-toggle key (default: Caps Lock) is held, ZXCV keys
+      play triads via the chord module instead of single notes.
 """
 
 from __future__ import annotations
@@ -14,8 +16,22 @@ from typing import Optional
 
 from pynput.keyboard import Key, Listener
 
+from chord import CHORD_INTERVALS, CHORD_VELOCITY, chord_notes_for
 from mapping import IGNORED_KEYS
 from sustain import SustainController
+
+
+# Keys the user can bind chord-mode toggle to (string name -> pynput Key).
+# Limited to keys that exist in pynput on every platform (no Key.insert
+# on macOS, for example).
+CHORD_TOGGLE_KEYS: dict[str, Key] = {
+    "caps_lock":  Key.caps_lock,
+    "tab":        Key.tab,
+    "esc":        Key.esc,
+    "backspace":  Key.backspace,
+    "ctrl_l":     Key.ctrl_l,
+    "ctrl_r":     Key.ctrl_r,
+}
 
 
 class KeyboardListener:
@@ -34,15 +50,21 @@ class KeyboardListener:
         self,
         controller: SustainController,
         transpose_step: int = 12,
+        chord_toggle_key: Key = Key.caps_lock,
     ):
         self.controller = controller
         self.transpose_step = transpose_step
+        self.chord_toggle_key = chord_toggle_key
         self._listener = Listener(
             on_press=self._on_press,
             on_release=self._on_release,
         )
         # Modifiers currently held (used for panic hotkey detection).
         self._panic_mods: set = set()
+        # Chord mode state: True while the toggle key is held.
+        self._chord_mode: bool = False
+        # Active chord keys: char -> list of MIDI notes currently sounding.
+        self._held_chords: dict[str, list[int]] = {}
 
     # --- public API -------------------------------------------------------
 
@@ -98,6 +120,11 @@ class KeyboardListener:
             print(f"transpose: {new_shift:+d} semitones", file=sys.stderr)
             return
 
+        # Chord-mode toggle key (default: Caps Lock).
+        if key == self.chord_toggle_key:
+            self._chord_mode = True
+            return
+
         # Panic hotkey: track modifiers, fire on 'p' trigger.
         if key in self.PANIC_MOD_KEYS:
             self._panic_mods.add(key)
@@ -106,6 +133,13 @@ class KeyboardListener:
         if char == self.PANIC_TRIGGER and self._is_panic_ready():
             self.controller.panic()
             return
+
+        # Chord mode: char keys in the ZXCV row trigger triads.
+        if self._chord_mode and char in CHORD_INTERVALS:
+            if char not in self._held_chords:  # don't re-trigger same key
+                self._start_chord(char)
+            return
+
         kind, midi = self._resolve(key)
         if kind == "sustain":
             self.controller.on_sustain_down()
@@ -113,9 +147,30 @@ class KeyboardListener:
             self.controller.on_key_down(key, midi)
         # 'ignore' keys fall through silently.
 
+    def _start_chord(self, char: str) -> None:
+        root_midi = self.controller.mapping.get(char)
+        notes = chord_notes_for(root_midi, char) if root_midi is not None else []
+        for n in notes:
+            self.controller.on_chord_note_on(n, CHORD_VELOCITY)
+        if notes:
+            self._held_chords[char] = notes
+
+    def _stop_chord(self, char: str) -> None:
+        for n in self._held_chords.pop(char, []):
+            self.controller.on_chord_note_off(n)
+
     def _on_release(self, key) -> None:
+        if key == self.chord_toggle_key:
+            self._chord_mode = False
+            return
         if key in self.PANIC_MOD_KEYS:
             self._panic_mods.discard(key)
+            return
+        char = getattr(key, "char", None)
+        # If a chord key is released, stop its triad (the toggle key being
+        # still held doesn't affect this — only the chord key's release).
+        if char in self._held_chords:
+            self._stop_chord(char)
             return
         kind, _ = self._resolve(key)
         if kind == "sustain":
